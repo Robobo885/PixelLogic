@@ -1,0 +1,492 @@
+<!doctype html>
+<html lang="ru">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>PixelLogic.com</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+    }
+
+    #searchInput {
+      width: 300px;
+      padding: 10px;
+      margin-bottom: 15px;
+      font-size: 16px;
+    }
+
+    ul {
+      list-style: none;
+      padding: 0;
+    }
+
+    li {
+      padding: 8px;
+      border-bottom: 1px solid #ddd;
+    }
+
+    li.hidden {
+      display: none;
+    }
+
+    body {
+      background: #9b9b9d;
+    }
+
+    .scrollbar-hide::-webkit-scrollbar {
+      display: none;
+    }
+  </style>
+</head>
+
+<body class="min-h-screen font-sans">
+  <div class="max-w-6xl mx-auto p-6">
+    <header class="mb-6">
+      <h1 class="text-3xl font-bold">PixelLogic-Beta</h1>
+      <p class="text-gray-600">Создавайте каналы, пишите статьи про программирование. Теперь с лайками, комментариями и
+        кнопкой поделиться.</p>
+    </header>
+
+    <div class="grid grid-cols-12 gap-6">
+      <!-- sidebar channels -->
+      <aside class="col-span-3 bg-white p-4 rounded-lg shadow-sm">
+        <div class="flex items-center justify-between mb-4">
+          <h2 class="font-semibold">Каналы</h2>
+          <button id="btnNewChannel" class="text-sm px-2 py-1 bg-indigo-600 text-white rounded">Новый</button>
+        </div>
+        <ul id="channelsList" class="space-y-2 max-h-[60vh] overflow-auto scrollbar-hide"></ul>
+      </aside>
+
+      <!-- main content -->
+      <main class="col-span-6">
+        <div id="channelInfo" class="bg-white p-4 rounded-lg shadow-sm mb-4">
+          <h3 id="channelTitle" class="text-xl font-semibold">Выберите канал</h3>
+          <p id="channelDesc" class="text-gray-600"></p>
+          <div class="mt-4 flex gap-2">
+            <button id="btnNewArticle" class="hidden px-3 py-1 bg-green-600 text-white rounded">Новая статья</button>
+            <button id="btnExport" class="px-3 py-1 bg-gray-200 rounded">Экспорт JSON</button>
+          </div>
+        </div>
+
+        <div id="articlesList" class="space-y-4"></div>
+      </main>
+
+      <!-- right panel: create forms / preview -->
+      <aside class="col-span-3">
+        <div id="formBox" class="bg-white p-4 rounded-lg shadow-sm">
+          <h4 class="font-semibold mb-2">Форма</h4>
+          <div id="placeholderForm" class="text-gray-500">Нажмите "Новый" канал или "Новая статья" чтобы начать.</div>
+
+          <form id="channelForm" class="hidden space-y-2">
+            <input id="chName" placeholder="Название канала" class="w-full border rounded p-2" />
+            <textarea id="chDesc" placeholder="Описание" class="w-full border rounded p-2" rows="3"></textarea>
+            <div class="flex gap-2">
+              <button type="button" id="saveChannel"
+                class="px-3 py-1 bg-indigo-600 text-white rounded">Сохранить</button>
+              <button type="button" id="cancelChannel" class="px-3 py-1 bg-gray-200 rounded">Отмена</button>
+            </div>
+          </form>
+
+          <form id="articleForm" class="hidden space-y-2">
+            <input id="aTitle" placeholder="Заголовок статьи" class="w-full border rounded p-2" />
+            <input id="aAuthor" placeholder="Автор" class="w-full border rounded p-2" />
+            <textarea id="aBody" placeholder="Текст (поддерживает Markdown)" class="w-full border rounded p-2"
+              rows="8"></textarea>
+            <div class="flex gap-2">
+              <button type="button" id="saveArticle"
+                class="px-3 py-1 bg-green-600 text-white rounded">Опубликовать</button>
+              <button type="button" id="cancelArticle" class="px-3 py-1 bg-gray-200 rounded">Отмена</button>
+            </div>
+          </form>
+        </div>
+
+        <div id="previewBox" class="mt-4 bg-white p-4 rounded-lg shadow-sm hidden">
+          <h4 class="font-semibold">Превью статьи</h4>
+          <div id="previewContent" class="prose max-w-none"></div>
+          <div id="previewActions" class="mt-4 flex gap-3 hidden">
+            <button id="likeBtn" class="px-3 py-1 bg-pink-500 text-white rounded">❤️ Лайк (<span
+                id="likeCount">0</span>)</button>
+            <button id="shareBtn" class="px-3 py-1 bg-blue-500 text-white rounded">🔗 Поделиться</button>
+          </div>
+
+          <div class="mt-4">
+            <h5 class="font-semibold mb-2">Комментарии</h5>
+            <div id="commentsList" class="space-y-2"></div>
+            <textarea id="commentInput" placeholder="Напишите комментарий..."
+              class="w-full border rounded p-2 mt-2"></textarea>
+            <button id="addCommentBtn" class="mt-2 px-3 py-1 bg-indigo-600 text-white rounded">Отправить</button>
+          </div>
+        </div>
+      </aside>
+    </div>
+  </div>
+
+  <h2>Поиск по списку</h2>
+  <input type="text" id="searchInput" placeholder="Введите текст для поиска...">
+
+  <ul id="itemList">
+    <li>JavaScript</li>
+    <li>Python</li>
+    <li>Java</li>
+    <li>React</li>
+    <li>HTML & CSS</li>
+    <li>Node.js</li>
+    <li>PHP</li>
+    <li>C#</li>
+  </ul>
+
+  <script>
+    const searchInput = document.getElementById("searchInput");
+    const items = document.querySelectorAll("#itemList li");
+
+    searchInput.addEventListener("input", () => {
+      const query = searchInput.value.toLowerCase();
+      items.forEach(item => {
+        item.classList.toggle("hidden", !item.textContent.toLowerCase().includes(query));
+      });
+    });
+
+    const STORAGE_KEY = 'platform_channels_demo_v2';
+
+    function uid(prefix = '') { return prefix + Date.now().toString(36) + Math.random().toString(36).slice(2, 8); }
+
+    function loadData() {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) return { channels: [] };
+      try { return JSON.parse(raw); } catch (e) { console.error(e); return { channels: [] }; }
+    }
+    function saveData(state) { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
+
+    let state = loadData();
+    let selectedChannelId = null;
+    let selectedArticleId = null;
+
+    const channelsList = document.getElementById('channelsList');
+    const btnNewChannel = document.getElementById('btnNewChannel');
+    const channelForm = document.getElementById('channelForm');
+    const chName = document.getElementById('chName');
+    const chDesc = document.getElementById('chDesc');
+    const saveChannel = document.getElementById('saveChannel');
+    const cancelChannel = document.getElementById('cancelChannel');
+
+    const channelTitle = document.getElementById('channelTitle');
+    const channelDesc = document.getElementById('channelDesc');
+    const btnNewArticle = document.getElementById('btnNewArticle');
+    const btnExport = document.getElementById('btnExport');
+
+    const articlesList = document.getElementById('articlesList');
+    const articleForm = document.getElementById('articleForm');
+    const aTitle = document.getElementById('aTitle');
+    const aAuthor = document.getElementById('aAuthor');
+    const aBody = document.getElementById('aBody');
+    const saveArticle = document.getElementById('saveArticle');
+    const cancelArticle = document.getElementById('cancelArticle');
+
+    const placeholderForm = document.getElementById('placeholderForm');
+    const previewBox = document.getElementById('previewBox');
+    const previewContent = document.getElementById('previewContent');
+    const previewActions = document.getElementById('previewActions');
+    const likeBtn = document.getElementById('likeBtn');
+    const likeCount = document.getElementById('likeCount');
+    const shareBtn = document.getElementById('shareBtn');
+    const commentsList = document.getElementById('commentsList');
+    const commentInput = document.getElementById('commentInput');
+    const addCommentBtn = document.getElementById('addCommentBtn');
+
+    function renderChannels() {
+      channelsList.innerHTML = '';
+      state.channels.forEach(ch => {
+        const li = document.createElement('li');
+        li.className = 'p-2 rounded hover:bg-gray-50 flex items-start justify-between';
+        li.innerHTML = `
+          <div class="flex-1">
+            <button class="text-left w-full" data-id="${ch.id}"><strong>${escapeHtml(ch.name)}</strong><div class="text-xs text-gray-500">${escapeHtml(ch.description || '')}</div></button>
+          </div>
+          <div class="ml-2 flex gap-1">
+            <button data-action="del" data-id="${ch.id}" class="text-xs px-2 py-1 bg-red-100 text-red-700 rounded">x</button>
+          </div>
+        `;
+        channelsList.appendChild(li);
+      });
+    }
+
+    function renderSelectedChannel() {
+      const ch = state.channels.find(c => c.id === selectedChannelId);
+      if (!ch) {
+        channelTitle.textContent = 'Выберите канал';
+        channelDesc.textContent = '';
+        btnNewArticle.classList.add('hidden');
+        articlesList.innerHTML = '';
+        return;
+      }
+      channelTitle.textContent = ch.name;
+      channelDesc.textContent = ch.description || '';
+      btnNewArticle.classList.remove('hidden');
+
+      articlesList.innerHTML = '';
+      if (!ch.articles || ch.articles.length === 0) {
+        articlesList.innerHTML = '<div class="bg-white p-4 rounded shadow-sm text-gray-500">Статей пока нет.</div>';
+        return;
+      }
+      ch.articles.slice().reverse().forEach(a => {
+        const card = document.createElement('div');
+        card.className = 'bg-white p-4 rounded shadow-sm';
+        card.innerHTML = `
+          <div class="flex justify-between items-start">
+            <div>
+              <h4 class="font-semibold">${escapeHtml(a.title)}</h4>
+              <div class="text-sm text-gray-500">by ${escapeHtml(a.author || 'Anon')} • ${new Date(a.createdAt).toLocaleString()}</div>
+              <div class="text-xs text-gray-400">❤️ ${a.likes || 0} • 💬 ${(a.comments || []).length}</div>
+            </div>
+            <div class="flex gap-2">
+              <button data-action="view" data-id="${a.id}" class="px-2 py-1 bg-indigo-600 text-white rounded text-sm">Читать</button>
+              <button data-action="delArticle" data-id="${a.id}" class="px-2 py-1 bg-red-100 text-red-700 rounded text-sm">Удалить</button>
+            </div>
+          </div>
+        `;
+        articlesList.appendChild(card);
+      });
+    }
+
+    function escapeHtml(s) { if (!s && s !== 0) return ''; return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
+
+    btnNewChannel.addEventListener('click', () => {
+      channelForm.classList.remove('hidden');
+      articleForm.classList.add('hidden');
+      placeholderForm.classList.add('hidden');
+      chName.value = '';
+      chDesc.value = '';
+    });
+
+    cancelChannel.addEventListener('click', () => {
+      channelForm.classList.add('hidden');
+      placeholderForm.classList.remove('hidden');
+    });
+
+    saveChannel.addEventListener('click', () => {
+      const name = chName.value.trim();
+      const desc = chDesc.value.trim();
+      if (!name) return alert('Введите название канала');
+      const newCh = { id: uid('ch_'), name, description: desc, articles: [] };
+      state.channels.push(newCh);
+      saveData(state);
+      renderChannels();
+      channelForm.classList.add('hidden');
+      selectedChannelId = newCh.id;
+      renderSelectedChannel();
+    });
+
+    channelsList.addEventListener('click', (e) => {
+      const btn = e.target.closest('button');
+      if (!btn) return;
+      const id = btn.dataset.id;
+      const action = btn.dataset.action;
+      if (action === 'del') {
+        if (!confirm('Удалить канал и все его статьи?')) return;
+        state.channels = state.channels.filter(c => c.id !== id);
+        if (selectedChannelId === id) selectedChannelId = null;
+        saveData(state);
+        renderChannels();
+        renderSelectedChannel();
+        return;
+      }
+      selectedChannelId = id;
+      renderSelectedChannel();
+    });
+
+    btnNewArticle.addEventListener('click', () => {
+      if (!selectedChannelId) return alert('Выберите канал');
+      articleForm.classList.remove('hidden');
+      channelForm.classList.add('hidden');
+      placeholderForm.classList.add('hidden');
+      aTitle.value = '';
+      aAuthor.value = '';
+      aBody.value = '';
+      previewBox.classList.remove('hidden');
+      previewContent.innerHTML = '';
+      previewActions.classList.add('hidden');
+      commentsList.innerHTML = '';
+    });
+
+    cancelArticle.addEventListener('click', () => {
+      articleForm.classList.add('hidden');
+      previewBox.classList.add('hidden');
+      placeholderForm.classList.remove('hidden');
+    });
+
+    saveArticle.addEventListener('click', () => {
+      const title = aTitle.value.trim();
+      const author = aAuthor.value.trim();
+      const body = aBody.value.trim();
+      if (!title || !body) return alert('Введите заголовок и текст статьи');
+      const ch = state.channels.find(c => c.id === selectedChannelId);
+      if (!ch) return alert('Канал не найден');
+      const art = { id: uid('a_'), title, author, body, createdAt: Date.now(), likes: 0, comments: [] };
+      ch.articles.push(art);
+      saveData(state);
+      articleForm.classList.add('hidden');
+      previewBox.classList.add('hidden');
+      renderSelectedChannel();
+    });
+
+    articlesList.addEventListener('click', (e) => {
+      const el = e.target.closest('button');
+      if (!el) return;
+      const action = el.dataset.action;
+      const id = el.dataset.id;
+      const ch = state.channels.find(c => c.id === selectedChannelId);
+      if (!ch) return;
+      if (action === 'view') {
+        const art = ch.articles.find(x => x.id === id);
+        if (!art) return;
+        selectedArticleId = art.id;
+        previewBox.classList.remove('hidden');
+        previewContent.innerHTML = renderMarkdown(art.body, art.title, art.author, art.createdAt);
+        previewActions.classList.remove('hidden');
+        likeCount.textContent = art.likes || 0;
+        renderComments(art);
+        previewBox.scrollIntoView({ behavior: 'smooth' });
+        return;
+      }
+      if (action === 'delArticle') {
+        if (!confirm('Удалить статью?')) return;
+        ch.articles = ch.articles.filter(x => x.id !== id);
+        saveData(state);
+        renderSelectedChannel();
+      }
+    });
+
+    likeBtn.addEventListener('click', () => {
+      const ch = state.channels.find(c => c.id === selectedChannelId);
+      if (!ch) return;
+      const art = ch.articles.find(x => x.id === selectedArticleId);
+      if (!art) return;
+      art.likes = 1;
+      saveData(state);
+      likeCount.textContent = art.likes;
+      renderSelectedChannel();
+    });
+
+    shareBtn.addEventListener('click', () => {
+      const url = window.location.href + '#article-' + selectedArticleId;
+      navigator.clipboard.writeText(url).then(() => alert('Ссылка скопирована: ' + url));
+    });
+
+    addCommentBtn.addEventListener('click', () => {
+      const txt = commentInput.value.trim();
+      if (!txt) return;
+      const ch = state.channels.find(c => c.id === selectedChannelId);
+      if (!ch) return;
+      const art = ch.articles.find(x => x.id === selectedArticleId);
+      if (!art) return;
+      art.comments = art.comments || [];
+      art.comments.push({ id: uid('c_'), text: txt, createdAt: Date.now() });
+      saveData(state);
+      commentInput.value = '';
+      renderComments(art);
+      renderSelectedChannel();
+    });
+
+    function renderComments(art) {
+      if (!art.comments || art.comments.length === 0) {
+        commentsList.innerHTML = '<div class="text-gray-500 text-sm">Комментариев пока нет.</div>';
+        return;
+      }
+      commentsList.innerHTML = '';
+      art.comments.slice().reverse().forEach(c => {
+        const comment = document.createElement('div');
+        comment.className = 'p-2 bg-gray-50 rounded mb-2';
+        comment.innerHTML = `<div class="text-sm">${escapeHtml(c.text)}</div><div class="text-xs text-gray-400 mt-1">${new Date(c.createdAt).toLocaleString()}</div>`;
+        commentsList.appendChild(comment);
+      });
+      commentsList.innerHTML = ''
+      if (!art.comments || art.comments.length === 0) {
+        commentsList.innerHTML = '<div class="text-gray-500 text-sm">Комментариев пока нет.</div>';
+        return;
+      }
+      art.comments.slice().reverse().forEach(c => {
+        const comment = document.createElement('div');
+        comment.className = 'p-2 bg-gray-50 rounded mb-2';
+        comment.innerHTML = `<div class="text-sm">${escapeHtml(c.text)}</div><div class="text-xs text-gray-400 mt-1">${new Date(c.createdAt).toLocaleString()}</div>`;
+        commentsList.appendChild(comment);
+      });
+    }
+
+    // Simple markdown renderer for preview
+
+
+    function renderMarkdown(body, title, author, createdAt) {
+      let html = `<h2 class="text-2xl font-bold">${escapeHtml(title)}</h2>`;
+      html += `<div class="text-sm text-gray-500">by ${escapeHtml(author || 'Anon')} • ${new Date(createdAt).toLocaleString()}</div>`;
+      html += `<div class="mt-4">${body.replace(/\n/g, '<br>')}</div>`;
+      return html;
+    }
+    btnExport.addEventListener('click', () => {
+      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(state, null, 2));
+      const dlAnchor = document.createElement('a');
+      dlAnchor.setAttribute("href", dataStr);
+      dlAnchor.setAttribute("download", "channels_data.json");
+      document.body.appendChild(dlAnchor);
+      dlAnchor.click();
+      dlAnchor.remove();
+    });
+    renderChannels();
+    renderSelectedChannel();
+    if (window.location.hash.startsWith('#article-')) {
+      const artId = window.location.hash.replace('#article-', '');
+      for (const ch of state.channels) {
+        const art = ch.articles.find(a => a.id === artId);
+        if (art) {
+          selectedChannelId = ch.id;
+          selectedArticleId = art.id;
+          renderSelectedChannel();
+          previewBox.classList.remove('hidden');
+          previewContent.innerHTML = renderMarkdown(art.body, art.title, art.author, art.createdAt);
+          previewActions.classList.remove('hidden');
+          likeCount.textContent = art.likes || 0;
+          renderComments(art);
+          break;
+        }
+      }
+    }
+
+    function renderComments(art) {
+      commentsList.innerHTML = '';
+      if (!art.comments || art.comments.length === 0) {
+        commentsList.innerHTML = '<div class="text-gray-500 text-sm">Комментариев пока нет.</div>';
+        return;
+      }
+      art.comments.slice().reverse().forEach(c => {
+        const comment = document.createElement('div');
+        comment.className = 'p-2 bg-gray-50 rounded mb-2';
+        comment.innerHTML = `<div class="text-sm">${escapeHtml(c.text)}</div><div class="text-xs text-gray-400 mt-1">${new Date(c.createdAt).toLocaleString()}</div>`;
+        commentsList.appendChild(comment);
+      });
+    }
+
+    function renderMarkdown(body, title, author, createdAt) {
+      let html = `<h2 class="text-2xl font-bold">${escapeHtml(title)}</h2>`;
+      html += `<div class="text-sm text-gray-500">by ${escapeHtml(author || 'Anon')} • ${new Date(createdAt).toLocaleString()}</div>`;
+      html += `<div class="mt-4">${body.replace(/\n/g, '<br>')}</div>`;
+      return html;
+    }
+
+    btnExport.addEventListener('click', () => {
+      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(state, null, 2));
+      const dlAnchor = document.createElement('a');
+      dlAnchor.setAttribute("href", dataStr);
+      dlAnchor.setAttribute("download", "channels_data.json");
+      document.body.appendChild(dlAnchor);
+      dlAnchor.click();
+      dlAnchor.remove();
+    }); 
+  
+  </script>
+
+</body>
+
+</html>
